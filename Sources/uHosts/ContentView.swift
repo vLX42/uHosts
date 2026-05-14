@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var manager = HostsManager()
+    @StateObject private var launch = LaunchAtLogin.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,13 +43,36 @@ struct ContentView: View {
             .help("Reload from /etc/hosts (replaces current edits)")
             .disabled(manager.isReloading)
 
-            Button {
-                NSApp.terminate(nil)
+            Menu {
+                Toggle("Launch at login", isOn: Binding(
+                    get: { launch.isEnabled },
+                    set: { launch.setEnabled($0) }
+                ))
+
+                if let err = launch.lastError {
+                    Text("Login-item error: \(err)")
+                }
+
+                Divider()
+
+                Button("About uHosts") {
+                    NSApp.activate(ignoringOtherApps: true)
+                    NSApp.orderFrontStandardAboutPanel(nil)
+                }
+
+                Divider()
+
+                Button("Quit uHosts") {
+                    NSApp.terminate(nil)
+                }
+                .keyboardShortcut("q")
             } label: {
-                Image(systemName: "power")
+                Image(systemName: "ellipsis.circle")
             }
-            .buttonStyle(.borderless)
-            .help("Quit uHosts")
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("Settings")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
