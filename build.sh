@@ -18,7 +18,7 @@ if [ ! -f "$BIN_PATH" ]; then
     exit 1
 fi
 
-echo "→ Bundling into $APP…"
+echo "→ Bundling into ${APP}…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_PATH" "$APP/Contents/MacOS/$APP_NAME"
