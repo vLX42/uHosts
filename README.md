@@ -55,8 +55,7 @@ cd uHosts
 ├── Resources/Info.plist           Bundle metadata (LSUIElement)
 ├── build.sh                       Compile + bundle .app
 ├── release.sh                     Build + zip + release notes
-├── deploy-site.sh                 Sync website/ to the public Pages repo
-├── website/index.html             Homepage (mirrored to vLX42/uhosts-site)
+├── website/index.html             Homepage (deployed to Vercel)
 ├── INSTALL.txt                    Shipped inside the release zip
 └── .github/workflows/
     ├── build.yml                  CI on every push/PR
@@ -66,18 +65,27 @@ cd uHosts
 ## Hosting
 
 - **Source:** this private repo.
-- **Homepage:** [`vLX42/uhosts-site`](https://github.com/vLX42/uhosts-site)
-  (public, GitHub Pages enabled) — live at
-  [vlx42.github.io/uhosts-site](https://vlx42.github.io/uhosts-site/).
+- **Homepage:** hosted on **Vercel**, deployed directly from the `website/`
+  subfolder of this private repo. Vercel handles private GitHub repos on
+  the free tier, so no public mirror is required. Every push to `main`
+  that touches `website/` triggers a redeploy automatically.
 - **Releases:** attached to GitHub Releases here in the private repo.
   Direct download URL stays stable:
   `https://github.com/vLX42/uHosts/releases/latest/download/uHosts-X.Y.Z.zip`.
 
-To push homepage changes:
+### Vercel project settings
 
-```sh
-./deploy-site.sh
-```
+When importing the repo into Vercel:
+
+| Setting | Value |
+|---|---|
+| Framework Preset | Other |
+| Root Directory | `website` |
+| Build Command | _(leave empty)_ |
+| Output Directory | _(leave empty)_ |
+| Install Command | _(leave empty)_ |
+
+The site is a single static `index.html`, so no build step is needed.
 
 ## Cutting a release
 
