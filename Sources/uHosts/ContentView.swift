@@ -1,94 +1,26 @@
 import SwiftUI
 
-struct ContentView: View {
-    @StateObject private var manager = HostsManager()
-    @StateObject private var launch = LaunchAtLogin.shared
+struct EditView: View {
+    @EnvironmentObject private var manager: HostsManager
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
             content
             Divider()
             footer
         }
-        .frame(width: 440)
     }
 
-    // MARK: – Header
-
-    private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "network").foregroundStyle(.tint)
-            Text("uHosts").font(.headline)
-            Text("\(manager.entries.count)")
-                .font(.caption.monospacedDigit())
-                .padding(.horizontal, 6)
-                .padding(.vertical, 1)
-                .background(.gray.opacity(0.2), in: Capsule())
-                .help("Total entries")
-
-            Spacer()
-
-            Button {
-                manager.reloadFromDisk()
-            } label: {
-                if manager.isReloading {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-            .buttonStyle(.borderless)
-            .help("Reload from /etc/hosts (replaces current edits)")
-            .disabled(manager.isReloading)
-
-            Menu {
-                Toggle("Launch at login", isOn: Binding(
-                    get: { launch.isEnabled },
-                    set: { launch.setEnabled($0) }
-                ))
-
-                if let err = launch.lastError {
-                    Text("Login-item error: \(err)")
-                }
-
-                Divider()
-
-                Button("About uHosts") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    NSApp.orderFrontStandardAboutPanel(nil)
-                }
-
-                Divider()
-
-                Button("Quit uHosts") {
-                    NSApp.terminate(nil)
-                }
-                .keyboardShortcut("q")
-            } label: {
-                Image(systemName: "ellipsis.circle")
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help("Settings")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-    }
-
-    // MARK: – List
-
+    @ViewBuilder
     private var content: some View {
         ScrollView {
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 if manager.entries.isEmpty {
-                    Text("No entries.\nClick + to add one, or ↻ to reload from /etc/hosts.")
-                        .font(.caption)
+                    Text("No entries.\nClick + to add one, or Reload to import from /etc/hosts.")
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.vertical, 28)
+                        .padding(.vertical, 40)
                         .frame(maxWidth: .infinity)
                 } else {
                     ForEach($manager.entries) { $entry in
@@ -99,12 +31,9 @@ struct ContentView: View {
                     }
                 }
             }
-            .padding(8)
+            .padding(12)
         }
-        .frame(minHeight: 140, maxHeight: 380)
     }
-
-    // MARK: – Footer
 
     private var footer: some View {
         HStack(spacing: 8) {
@@ -113,8 +42,15 @@ struct ContentView: View {
             } label: {
                 Image(systemName: "plus")
             }
-            .buttonStyle(.borderless)
             .help("Add entry")
+
+            Button {
+                manager.reloadFromDisk()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .help("Reload from /etc/hosts")
+            .disabled(manager.isReloading)
 
             if let err = manager.lastError {
                 Text(err)
@@ -142,17 +78,15 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent)
             .disabled(manager.isApplying)
             .keyboardShortcut(.return, modifiers: [.command])
-            .help("Write changes to /etc/hosts (⌘↩)")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(12)
     }
 }
 
-private struct EntryRow: View {
+struct EntryRow: View {
     @Binding var entry: HostsEntry
     let onDelete: () -> Void
-    @State private var hovering: Bool = false
+    @State private var hovering = false
 
     var body: some View {
         HStack(spacing: 10) {
