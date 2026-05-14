@@ -18,7 +18,7 @@ jobs:
     name: Build & publish release
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Determine version
         id: ver
@@ -47,7 +47,7 @@ jobs:
           shasum -a 256 dist/uHosts-*.zip
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: uHosts-${{ steps.ver.outputs.version }}
           path: dist/uHosts-*.zip
