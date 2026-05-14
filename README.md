@@ -2,8 +2,9 @@
 
 A tiny, native menu-bar editor for `/etc/hosts` on Apple Silicon Macs.
 
-- **288 KB** app bundle, **~66 MB** RAM at idle
-- Native `arm64`, SwiftUI + AppKit, no third-party dependencies, no Electron
+- **392 KB** app bundle, **~37 MB** RAM at idle
+- Native `arm64`, AppKit menu bar with a SwiftUI editor window
+- Launch at login (optional, via macOS Login Items / `SMAppService`)
 - Imports your existing `/etc/hosts` on first launch
 - Backs up the original before the first write
 - Compatible with [iHosts](https://github.com/toolinbox/iHosts) (standard hosts-file format)
@@ -26,10 +27,24 @@ The `xattr` step bypasses Gatekeeper, which blocks the app on first launch
 because this build is ad-hoc signed (no paid Apple Developer Program
 membership, hence no notarization). You only need to run it once.
 
-The first time you click **Apply**, macOS will prompt for your admin
-password — required to write `/etc/hosts`.
+The first time you click **Apply Changes** (⌘S), macOS will prompt for your
+admin password — required to write `/etc/hosts`.
 
 **Requires:** macOS 14 (Sonoma) or later, Apple Silicon.
+
+## Using it
+
+Click the network icon in the menu bar:
+
+- Each entry shows as a menu item with a ✓ when enabled. Click to toggle.
+- **Apply Changes (⌘S)** — write the current state to `/etc/hosts`.
+- **Reload from /etc/hosts (⌘R)** — re-import after a manual edit.
+- **Edit Hosts… (⌘,)** — open the editor window to rename, change IP, etc.
+- **Add Entry… (⌘N)** — opens the editor with a new blank row.
+- **Launch at Login** — register the app as a Login Item.
+
+NSMenu closes after each click, so to flip several entries you reopen the
+menu between toggles, then Apply once.
 
 ## Build from source
 
@@ -49,14 +64,16 @@ cd uHosts
 .
 ├── Package.swift                  SwiftPM manifest
 ├── Sources/uHosts/
-│   ├── App.swift                  @main, MenuBarExtra scene
-│   ├── ContentView.swift          Popover UI
-│   └── HostsManager.swift         Parse, render, write /etc/hosts
-├── Resources/Info.plist           Bundle metadata (LSUIElement)
+│   ├── App.swift                  @main NSApplication + status-item menu
+│   ├── ContentView.swift          SwiftUI editor view (lazy-loaded)
+│   ├── HostsManager.swift         Parse, render, write /etc/hosts
+│   └── LaunchAtLogin.swift        Login Item via SMAppService
+├── Resources/Info.plist           Bundle metadata (LSUIElement, version)
 ├── build.sh                       Compile + bundle .app
 ├── release.sh                     Build + zip + release notes
-├── deploy-site.sh                 Sync website/ to the public Pages repo
-├── website/index.html             Homepage (mirrored to vLX42/uhosts-site)
+├── bump.sh                        Update version string in every file
+├── deploy-site.sh                 Push website/ to the public Pages mirror
+├── website/index.html             Homepage (vLX42/uhosts-site → GitHub Pages)
 ├── INSTALL.txt                    Shipped inside the release zip
 └── .github/workflows/
     ├── build.yml                  CI on every push/PR
@@ -65,15 +82,15 @@ cd uHosts
 
 ## Hosting
 
-- **Source:** this private repo.
-- **Homepage:** [`vLX42/uhosts-site`](https://github.com/vLX42/uhosts-site)
-  (public, GitHub Pages enabled) — live at
+- **Source:** this repo, [`vLX42/uHosts`](https://github.com/vLX42/uHosts).
+- **Homepage:** mirrored to the public [`vLX42/uhosts-site`](https://github.com/vLX42/uhosts-site)
+  repo and served by GitHub Pages at
   [vlx42.github.io/uhosts-site](https://vlx42.github.io/uhosts-site/).
-- **Releases:** attached to GitHub Releases here in the private repo.
-  Direct download URL stays stable:
-  `https://github.com/vLX42/uHosts/releases/latest/download/uHosts-X.Y.Z.zip`.
+- **Releases:** attached to GitHub Releases here.
+  Versioned download URL is stable per release:
+  `https://github.com/vLX42/uHosts/releases/download/vX.Y.Z/uHosts-X.Y.Z.zip`.
 
-To push homepage changes:
+To push homepage changes to Pages:
 
 ```sh
 ./deploy-site.sh
@@ -82,8 +99,10 @@ To push homepage changes:
 ## Cutting a release
 
 ```sh
-git tag v1.0.1
-git push origin v1.0.1
+./bump.sh 1.2.0                                # updates Info.plist, release.sh, README, homepage
+git commit -am "Bump version to 1.2.0"
+git tag v1.2.0 && git push origin main v1.2.0  # triggers the Release workflow
+./deploy-site.sh                               # publish updated download link on Pages
 ```
 
 The `Release` workflow builds the app, zips it, generates notes, and
