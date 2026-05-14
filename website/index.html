@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>uHosts — minimal /etc/hosts editor for Apple Silicon</title>
+<meta name="description" content="A tiny native menu-bar hosts file editor for Apple Silicon Macs. 288 KB, no Electron, MIT-licensed.">
+<meta property="og:title" content="uHosts">
+<meta property="og:description" content="Minimal menu-bar /etc/hosts editor for Apple Silicon. Native, 288 KB, no Electron.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235eead4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='2' y1='12' x2='22' y2='12'/><path d='M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z'/></svg>">
+<style>
+  :root {
+    --bg: #0a0d13;
+    --bg-grad-1: #0f1622;
+    --bg-grad-2: #0a0d13;
+    --card: #131825;
+    --border: #1f2937;
+    --text: #e5e7eb;
+    --text-dim: #cbd5e1;
+    --muted: #94a3b8;
+    --accent: #5eead4;
+    --accent-2: #818cf8;
+    --accent-dim: rgba(94, 234, 212, 0.12);
+    --danger: #fb7185;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(94, 234, 212, 0.08), transparent 60%);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 96px 24px 64px;
+  }
+
+  /* --- Hero --- */
+  .hero { text-align: center; margin-bottom: 64px; }
+  .logo {
+    width: 80px; height: 80px;
+    margin: 0 auto 24px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 16px 40px -10px rgba(94, 234, 212, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  }
+  .logo svg { width: 40px; height: 40px; }
+  h1 {
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+    background: linear-gradient(180deg, #ffffff, #cbd5e1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .tagline {
+    color: var(--text-dim);
+    font-size: 18px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .tagline code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .cta.primary {
+    background: var(--accent);
+    color: #052e25;
+    box-shadow: 0 8px 24px -8px rgba(94, 234, 212, 0.45);
+  }
+  .cta.primary:hover { transform: translateY(-1px); box-shadow: 0 10px 28px -8px rgba(94, 234, 212, 0.55); }
+  .cta.ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .cta.ghost:hover { background: var(--card); }
+  .cta .ver {
+    font-size: 12px;
+    background: rgba(0,0,0,0.18);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-weight: 500;
+  }
+
+  /* --- Stats --- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 56px 0 0;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 14px;
+    text-align: center;
+  }
+  .stat .num {
+    font-family: var(--mono);
+    font-size: 22px;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .stat .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* --- Section heading --- */
+  h2 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin: 64px 0 20px;
+  }
+
+  /* --- Preview (mock popover) --- */
+  .mock {
+    background:
+      radial-gradient(circle at 30% 20%, rgba(94, 234, 212, 0.1), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(129, 140, 248, 0.1), transparent 50%),
+      linear-gradient(135deg, #1a2233 0%, #0f1622 100%);
+    padding: 48px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+  }
+  .popover {
+    width: 340px;
+    background: rgba(38, 44, 58, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 48px -8px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    color: white;
+    font-size: 12px;
+    overflow: hidden;
+  }
+  .popover .bar {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .popover .bar svg { width: 14px; height: 14px; opacity: 0.85; }
+  .popover .bar .title { font-weight: 600; font-size: 12px; }
+  .popover .bar .badge {
+    background: rgba(255,255,255,0.1);
+    padding: 1px 7px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-family: var(--mono);
+  }
+  .popover .bar .spacer { flex: 1; }
+  .popover .bar .icon { opacity: 0.55; font-size: 12px; }
+  .popover .row {
+    padding: 8px 10px;
+    margin: 6px 8px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.04);
+  }
+  .popover .row.disabled { opacity: 0.5; }
+  .switch {
+    width: 26px; height: 14px;
+    background: var(--accent);
+    border-radius: 14px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .switch.off { background: #4b5563; }
+  .switch::after {
+    content: "";
+    position: absolute;
+    width: 10px; height: 10px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    right: 2px;
+  }
+  .switch.off::after { right: auto; left: 2px; }
+  .host { flex: 1; min-width: 0; }
+  .host .h1 { font-weight: 500; font-size: 12px; }
+  .host .h2 { font-family: var(--mono); font-size: 10px; color: rgba(255,255,255,0.45); }
+  .popover .foot {
+    padding: 8px 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pill {
+    background: var(--accent);
+    color: #052e25;
+    padding: 3px 12px;
+    border-radius: 5px;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  /* --- Steps --- */
+  ol.steps {
+    list-style: none;
+    counter-reset: step;
+  }
+  ol.steps li {
+    counter-increment: step;
+    padding: 16px 0 16px 48px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+  ol.steps li:last-child { border-bottom: none; }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: 14px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+  }
+  ol.steps li strong { color: white; }
+  ol.steps li .note { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+  pre {
+    background: #060a13;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 10px;
+  }
+  pre .c { color: var(--accent); }
+
+  /* --- Features --- */
+  ul.features {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  ul.features li {
+    padding: 14px 14px 14px 38px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    position: relative;
+  }
+  ul.features li::before {
+    content: "✓";
+    position: absolute;
+    left: 14px; top: 14px;
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  /* --- Requirements --- */
+  .reqs {
+    list-style: none;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .reqs li {
+    padding: 4px 0;
+  }
+  .reqs li::before {
+    content: "·  ";
+    color: var(--accent);
+  }
+
+  /* --- Footer --- */
+  footer {
+    text-align: center;
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 520px) {
+    .container { padding: 64px 18px 48px; }
+    h1 { font-size: 36px; }
+    .tagline { font-size: 16px; }
+    .stats { grid-template-columns: 1fr; }
+    ul.features { grid-template-columns: 1fr; }
+    .popover { width: 100%; max-width: 320px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <section class="hero">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+    </div>
+    <h1>uHosts</h1>
+    <p class="tagline">
+      A tiny, native menu-bar editor for <code>/etc/hosts</code> on Apple Silicon Macs.
+    </p>
+    <div class="cta-row">
+      <a href="#install" class="cta primary">
+        Download <span class="ver">v1.0.0</span>
+      </a>
+      <a href="https://github.com/vLX42/uHosts" class="cta ghost">Source on GitHub</a>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="num">288 KB</span>
+        <span class="lbl">App size</span>
+      </div>
+      <div class="stat">
+        <span class="num">~66 MB</span>
+        <span class="lbl">RAM at idle</span>
+      </div>
+      <div class="stat">
+        <span class="num">arm64</span>
+        <span class="lbl">Native binary</span>
+      </div>
+    </div>
+  </section>
+
+  <h2>Preview</h2>
+  <div class="mock">
+    <div class="popover">
+      <div class="bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        <span class="title">uHosts</span>
+        <span class="badge">3</span>
+        <span class="spacer"></span>
+        <span class="icon">↻</span>
+        <span class="icon">⏻</span>
+      </div>
+      <div class="row">
+        <div class="switch"></div>
+        <div class="host">
+          <div class="h1">kubernetes.docker.internal</div>
+          <div class="h2">127.0.0.1</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="switch"></div>
+        <div class="host">
+          <div class="h1">openclaw.vlx.dk</div>
+          <div class="h2">87.62.103.33</div>
+        </div>
+      </div>
+      <div class="row disabled">
+        <div class="switch off"></div>
+        <div class="host">
+          <div class="h1">staging.example.com</div>
+          <div class="h2">10.0.0.42</div>
+        </div>
+      </div>
+      <div class="foot">
+        <span class="icon">+</span>
+        <span class="spacer" style="flex:1;"></span>
+        <span class="pill">Apply</span>
+      </div>
+    </div>
+  </div>
+
+  <h2 id="install">Install</h2>
+  <ol class="steps">
+    <li>
+      <strong>Download</strong> the latest release.
+      <div class="note">A single zip with the app and an INSTALL.txt.</div>
+    </li>
+    <li>
+      <strong>Drag</strong> uHosts.app into your <code>/Applications</code> folder.
+    </li>
+    <li>
+      <strong>Bypass Gatekeeper.</strong> This build isn't notarized by Apple
+      (notarization requires a paid Developer Program membership).
+<pre><span class="c">$</span> xattr -d com.apple.quarantine /Applications/uHosts.app</pre>
+      <div class="note">Or: right-click the app in Finder → <em>Open</em> → click <em>Open</em> in the dialog. You only need to do this once.</div>
+    </li>
+    <li>
+      <strong>Use it.</strong> Click the network icon in your menu bar.
+      The first Apply prompts for your admin password — that's macOS asking
+      for permission to write to <code>/etc/hosts</code>.
+    </li>
+  </ol>
+
+  <h2>What it does</h2>
+  <ul class="features">
+    <li>Toggle hosts on/off with a switch</li>
+    <li>Imports your existing <code>/etc/hosts</code> on first launch</li>
+    <li>Backs up the original before the first write</li>
+    <li>Lives in the menu bar, no Dock icon</li>
+    <li>Compatible with iHosts (standard hosts format)</li>
+    <li>SwiftUI + AppKit, no Electron, no web view</li>
+  </ul>
+
+  <h2>Requirements</h2>
+  <ul class="reqs">
+    <li>macOS 14 (Sonoma) or later</li>
+    <li>Apple Silicon (M1 / M2 / M3 / M4)</li>
+  </ul>
+
+  <h2>Why a clone?</h2>
+  <p style="color: var(--text-dim); font-size: 15px;">
+    The original <a href="https://github.com/toolinbox/iHosts" style="color: var(--accent); text-decoration: none;">iHosts</a>
+    doesn't ship a native Apple Silicon build. uHosts is a minimal
+    rewrite: read existing entries, toggle, apply. No schemes, no cloud
+    sync, no telemetry — just a switch and an apply button.
+  </p>
+
+  <footer>
+    Source on
+    <a href="https://github.com/vLX42/uHosts">GitHub</a>
+    &nbsp;·&nbsp; MIT licensed
+  </footer>
+
+</div>
+
+</body>
+</html>

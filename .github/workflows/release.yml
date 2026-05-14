@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g. 1.0.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: ver
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing uHosts v$VERSION"
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build release artifact
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: ./release.sh
+
+      - name: Show artifact info
+        run: |
+          ls -lh dist/
+          shasum -a 256 dist/uHosts-*.zip
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uHosts-${{ steps.ver.outputs.version }}
+          path: dist/uHosts-*.zip
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/uHosts-*.zip
+          body_path: dist/RELEASE_NOTES.md
+          name: uHosts ${{ steps.ver.outputs.version }}
+          draft: false
+          prerelease: false
