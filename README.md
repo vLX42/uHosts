@@ -37,7 +37,7 @@ password — required to write `/etc/hosts`.
 git clone https://github.com/vLX42/uHosts.git
 cd uHosts
 ./build.sh                # produces build/uHosts.app
-./release.sh              # produces dist/uHosts-1.0.0.zip
+./release.sh              # produces dist/uHosts-1.1.0.zip
 ```
 
 `swift build` handles compilation; `build.sh` wraps the binary in a proper
